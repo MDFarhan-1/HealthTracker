@@ -1,10 +1,10 @@
 [package]
-name = "todo-list"
+name = "habit-tracker"
 version = "1.0.0"
 authors = []
 
 [addresses]
-todolist_addr='0x002e83e23774277d5c486e9fcc884170e24f9098fd603cc1a629c909ec820db3'
+habittracker_addr = '0x0da2178c68352cf9035afbb8750eb9eb6905332a9d0f15bd36b140cba6eaf5eb' # Replace with your actual address
 
 [dev-addresses]
 

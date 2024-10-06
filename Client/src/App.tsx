@@ -1,131 +1,88 @@
 import { WalletSelector } from "@aptos-labs/wallet-adapter-ant-design";
 import { Layout, Row, Col, Button, Spin, List, Checkbox, Input } from "antd";
-
 import React, { useEffect, useState } from "react";
 import { useWallet, InputTransactionData } from "@aptos-labs/wallet-adapter-react";
-
 import "@aptos-labs/wallet-adapter-ant-design/dist/index.css";
 import { CheckboxChangeEvent } from "antd/es/checkbox";
 import { Aptos, AptosConfig, Network } from "@aptos-labs/ts-sdk";
+import "./App.css";
 
-type Task = {
+type Habit = {
   address: string;
-  completed: boolean;
+  completed_today: boolean;
   content: string;
-  task_id: string;
+  habit_id: string;
+  reward: number;
+  completion_streak: boolean[]; 
 };
 
 const aptosConfig = new AptosConfig({ network: Network.DEVNET });
 
 export const aptos = new Aptos(aptosConfig);
-// change this to be your module account address
-export const moduleAddress = "0x0da2178c68352cf9035afbb8750eb9eb6905332a9d0f15bd36b140cba6eaf5eb";
+export const moduleAddress = "0x0da2178c68352cf9035afbb8750eb9eb6905332a9d0f15bd36b140cba6eaf5eb"; // Update with your module address
 
-function App() {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [newTask, setNewTask] = useState<string>("");
+function HabitTracker() {
+  const [habits, setHabits] = useState<Habit[]>([
+    {
+      address: "0x1",
+      completed_today: false,
+      content: "Coding",
+      habit_id: "1",
+      reward: 10,
+      completion_streak: [false, true, true, false, false, true, false], 
+    },
+    {
+      address: "0x1",
+      completed_today: false,
+      content: "Study",
+      habit_id: "2",
+      reward: 15,
+      completion_streak: [true, true, false, false, true, false, true], 
+    },
+    {
+      address: "0x1",
+      completed_today: false,
+      content: "Sports",
+      habit_id: "3",
+      reward: 5,
+      completion_streak: [false, false, true, true, true, false, true], 
+    },
+  ]); 
+  const [newHabit, setNewHabit] = useState<string>("");
   const { account, signAndSubmitTransaction } = useWallet();
-  const [accountHasList, setAccountHasList] = useState<boolean>(false);
   const [transactionInProgress, setTransactionInProgress] = useState<boolean>(false);
 
-  const onWriteTask = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = event.target.value;
-    setNewTask(value);
+  const onWriteHabit = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setNewHabit(event.target.value);
   };
 
-  const fetchList = async () => {
-    if (!account) return [];
-    try {
-      const todoListResource = await aptos.getAccountResource(
-        {accountAddress:account?.address,
-          resourceType:`${moduleAddress}::todolist::TodoList`}
-      );
-      setAccountHasList(true);
-      // tasks table handle
-      const tableHandle = (todoListResource as any).data.tasks.handle;
-      // tasks table counter
-      const taskCounter = (todoListResource as any).data.task_counter;
-
-      let tasks = [];
-      let counter = 1;
-      while (counter <= taskCounter) {
-        const tableItem = {
-          key_type: "u64",
-          value_type: `${moduleAddress}::todolist::Task`,
-          key: `${counter}`,
-        };
-        const task = await aptos.getTableItem<Task>({handle:tableHandle, data:tableItem});
-        tasks.push(task);
-        counter++;
-      }
-      // set tasks in local state
-      setTasks(tasks);
-    } catch (e: any) {
-      setAccountHasList(false);
-    }
-  };
-
-  const addNewList = async () => {
-    if (!account) return [];
-    setTransactionInProgress(true);
-
-    const transaction:InputTransactionData = {
-      data:{
-        function:`${moduleAddress}::todolist::creating_a_list`,
-        functionArguments:[]
-      }
-    }
-    try {
-      // sign and submit transaction to chain
-      const response = await signAndSubmitTransaction(transaction);
-      // wait for transaction
-      await aptos.waitForTransaction({transactionHash:response.hash});
-      setAccountHasList(true);
-    } catch (error: any) {
-      setAccountHasList(false);
-    } finally {
-      setTransactionInProgress(false);
-    }
-  };
-
-  const onTaskAdded = async () => {
-    // check for connected account
+  const addNewHabit = async () => {
     if (!account) return;
     setTransactionInProgress(true);
 
-    const transaction:InputTransactionData = {
-      data:{
-        function:`${moduleAddress}::todolist::creating_a_task`,
-        functionArguments:[newTask]
-      }
-    }
+    const transaction: InputTransactionData = {
+      data: {
+        function: `${moduleAddress}::habittracker::create_habit`,
+        functionArguments: [newHabit],
+      },
+    };
 
-    // hold the latest task.task_id from our local state
-    const latestId = tasks.length > 0 ? parseInt(tasks[tasks.length - 1].task_id) + 1 : 1;
-
-    // build a newTaskToPush objct into our local state
-    const newTaskToPush = {
+    const latestId = habits.length > 0 ? parseInt(habits[habits.length - 1].habit_id) + 1 : 1;
+    const newHabitToPush = {
       address: account.address,
-      completed: false,
-      content: newTask,
-      task_id: latestId + "",
+      completed_today: false,
+      content: newHabit,
+      habit_id: latestId + "",
+      reward: 10,
+      completion_streak: [false, false, false, false, false, false, false], 
     };
 
     try {
-      // sign and submit transaction to chain
       const response = await signAndSubmitTransaction(transaction);
-      // wait for transaction
-      await aptos.waitForTransaction({transactionHash:response.hash});
+      await aptos.waitForTransaction({ transactionHash: response.hash });
 
-      // Create a new array based on current state:
-      let newTasks = [...tasks];
-
-      // Add item to the tasks array
-      newTasks.push(newTaskToPush);
-      // Set state
-      setTasks(newTasks);
-      // clear input text
-      setNewTask("");
+      setHabits([...habits, newHabitToPush]);
+      setNewHabit("");
     } catch (error: any) {
       console.log("error", error);
     } finally {
@@ -133,54 +90,46 @@ function App() {
     }
   };
 
-  const onCheckboxChange = async (event: CheckboxChangeEvent, taskId: string) => {
-    if (!account) return;
-    if (!event.target.checked) return;
+  const onCheckboxChange = async (event: CheckboxChangeEvent, habitId: string) => {
+    if (!account || !event.target.checked) return;
     setTransactionInProgress(true);
 
-    const transaction:InputTransactionData = {
-      data:{
-        function:`${moduleAddress}::todolist::completed_the_task`,
-        functionArguments:[taskId]
-      }
-    }
+    const transaction: InputTransactionData = {
+      data: {
+        function: `${moduleAddress}::habittracker::complete_habit`,
+        functionArguments: [habitId],
+      },
+    };
 
     try {
-      // sign and submit transaction to chain
       const response = await signAndSubmitTransaction(transaction);
-      // wait for transaction
-      await aptos.waitForTransaction({transactionHash:response.hash});
+      await aptos.waitForTransaction({ transactionHash: response.hash });
 
-      setTasks((prevState) => {
-        const newState = prevState.map((obj) => {
-          // if task_id equals the checked taskId, update completed property
-          if (obj.task_id === taskId) {
-            return { ...obj, completed: true };
-          }
-
-          // otherwise return object as is
-          return obj;
-        });
-
-        return newState;
-      });
+      setHabits((prevState) =>
+        prevState.map((habit) =>
+          habit.habit_id === habitId
+            ? {
+                ...habit,
+                completed_today: true,
+                reward: habit.reward + 10,
+                completion_streak: [...habit.completion_streak.slice(1), true], // Update the streak
+              }
+            : habit
+        )
+      );
     } catch (error: any) {
       console.log("error", error);
     } finally {
       setTransactionInProgress(false);
     }
   };
-
-  useEffect(() => {
-    fetchList();
-  }, [account?.address]);
 
   return (
     <>
       <Layout>
         <Row align="middle">
           <Col span={10} offset={2}>
-            <h1>Todolist</h1>
+            <h1 className="habit-tracker-title">Habit Tracker</h1>
           </Col>
           <Col span={12} style={{ textAlign: "right", paddingRight: "200px" }}>
             <WalletSelector />
@@ -188,73 +137,55 @@ function App() {
         </Row>
       </Layout>
       <Spin spinning={transactionInProgress}>
-        {!accountHasList ? (
-          <Row gutter={[0, 32]} style={{ marginTop: "2rem" }}>
-            <Col span={8} offset={8}>
-              <Button
-                disabled={!account}
-                block
-                onClick={addNewList}
-                type="primary"
-                style={{ height: "40px", backgroundColor: "#FF0000" }}
-              >
-                Add new List
+        <Row gutter={[0, 32]} className="habit-tracker-container">
+          <Col span={24} className="habit-input-container">
+            <Input.Group compact>
+              <Input
+                onChange={onWriteHabit}
+                placeholder="Add a Habit"
+                size="large"
+                value={newHabit}
+              />
+              <Button onClick={addNewHabit} type="primary">
+                Add
               </Button>
-            </Col>
-          </Row>
-        ) : (
-          <Row gutter={[0, 32]} style={{ marginTop: "2rem" }}>
-            <Col span={8} offset={8}>
-              <Input.Group compact>
-                <Input
-                  onChange={(event) => onWriteTask(event)}
-                  style={{ width: "calc(100% - 60px)" }}
-                  placeholder="Add a Task"
-                  size="large"
-                  value={newTask}
-                />
-                <Button onClick={onTaskAdded} type="primary" style={{ height: "40px", backgroundColor: "#FF0000" }}>
-                  Add
-                </Button>
-              </Input.Group>
-            </Col>
-            <Col span={8} offset={8}>
-              {tasks && (
-                <List
-                  size="small"
-                  bordered
-                  dataSource={tasks}
-                  renderItem={(task: Task) => (
-                    <List.Item
-                      actions={[
-                        <div>
-                          {task.completed ? (
-                            <Checkbox defaultChecked={true} disabled />
-                          ) : (
-                            <Checkbox onChange={(event) => onCheckboxChange(event, task.task_id)} />
-                          )}
-                        </div>,
-                      ]}
-                    >
-                      <List.Item.Meta
-                        title={task.content}
-                        description={
-                          <a
-                            href={`https://explorer.aptoslabs.com/account/${task.address}/`}
-                            target="_blank"
-                          >{`${task.address.slice(0, 6)}...${task.address.slice(-5)}`}</a>
-                        }
+            </Input.Group>
+          </Col>
+          <Col span={24}>
+            {habits && (
+              <List
+                size="small"
+                className="habit-list"
+                bordered
+                dataSource={habits}
+                renderItem={(habit: Habit) => (
+                  <List.Item className={`habit-item ${habit.content.toLowerCase()}`}>
+                    <div style={{ width: "60%" }}>
+                      <strong>{habit.content}</strong>
+                      <div className="completion-map">
+                        {habit.completion_streak.map((completed, index) => (
+                          <div
+                            key={index}
+                            className={`completion-block ${completed ? "completed" : ""} ${habit.content.toLowerCase()}`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <div className="checkbox-container">
+                      <Checkbox
+                        onChange={(event) => onCheckboxChange(event, habit.habit_id)}
+                        defaultChecked={habit.completed_today}
                       />
-                    </List.Item>
-                  )}
-                />
-              )}
-            </Col>
-          </Row>
-        )}
+                    </div>
+                  </List.Item>
+                )}
+              />
+            )}
+          </Col>
+        </Row>
       </Spin>
     </>
   );
 }
 
-export default App;
+export default HabitTracker;
