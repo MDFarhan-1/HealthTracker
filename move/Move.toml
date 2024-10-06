@@ -1,0 +1,15 @@
+[package]
+name = "HealthTracker"
+version = "1.0.0"
+authors = []
+
+[addresses]
+MyModule = '0x002e83e23774277d5c486e9fcc884170e24f9098fd603cc1a629c909ec820db3'
+[dev-addresses]
+
+[dependencies.AptosFramework]
+git = "https://github.com/aptos-labs/aptos-core.git"
+rev = "mainnet"
+subdir = "aptos-move/framework/aptos-framework"
+
+[dev-dependencies]
