@@ -1,11 +1,11 @@
 [package]
-name = "HealthTracker"
+name = "todo-list"
 version = "1.0.0"
 authors = []
-npm create vite@latest my-react-app
 
 [addresses]
-MyModule = '0x002e83e23774277d5c486e9fcc884170e24f9098fd603cc1a629c909ec820db3'
+todolist_addr='0x002e83e23774277d5c486e9fcc884170e24f9098fd603cc1a629c909ec820db3'
+
 [dev-addresses]
 
 [dependencies.AptosFramework]
